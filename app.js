@@ -254,14 +254,16 @@ function parseCSV(csvText) {
         const membersJson = parseGoogleSheetResponse(membersText);
         const pastorsJson = parseGoogleSheetResponse(pastorsText);
 
-    appState.members = membersJson.table.rows
-        .map(row => ({
-            name: row.c[0]?.v || '',
-            group: row.c[2]?.v || '',
-            year: row.c[3]?.v || '',
-            phone: cleanPhone(row.c[4]?.v || '')
-        }))
-        .filter(m => m.name && m.phone);
+appState.members = membersJson.table.rows
+    .map(row => ({
+        name: row.c[0]?.v || '',
+        group: row.c[2]?.v || '',
+        year: row.c[3]?.v || '',
+        phone: cleanPhone(row.c[4]?.v || '')
+    }))
+    // keep only real entries
+    .filter(m => m.name && /^[A-Za-z]/.test(m.name) && m.phone);
+
 
 
 appState.pastors = pastorsJson.table.rows
