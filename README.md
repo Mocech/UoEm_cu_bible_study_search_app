@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # University Of Embu — Christian Union — Bible Study Group Finder
 
 ## Overview
@@ -70,3 +71,7 @@ If you want, I can:
 - Replace the CORS proxy with a configuration toggle.
 - Add a minimal `README` badge or license section.
 
+=======
+# UoEm_cu_bible_study_search_app
+Its a web-based application that will enabe members of the Christian union to search the bible study groups they are in
+>>>>>>> 7fc9f28a02f2c0a822de9ed1f4e5397d2fc047b2
