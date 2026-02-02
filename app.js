@@ -85,25 +85,25 @@ const SUBCOM_LEADERS = [
         return cleaned;
     }
 
-    function  cleanPhone(phone) {
-    if (!phone) return '';
+//     function  cleanPhone(phone) {
+//     if (!phone) return '';
 
-    let cleaned = phone.toString().trim().replace(/\D/g, '');
+//     let cleaned = phone.toString().trim().replace(/\D/g, '');
 
-    if (cleaned.startsWith('254')) {
-        return cleaned;
-    }
+//     if (cleaned.startsWith('254')) {
+//         return cleaned;
+//     }
 
-    if (cleaned.startsWith('0')) {
-        return '254' + cleaned.slice(1);
-    }
+//     if (cleaned.startsWith('0')) {
+//         return '254' + cleaned.slice(1);
+//     }
 
-    if (cleaned.length === 9) {
-        return '254' + cleaned;
-    }
+//     if (cleaned.length === 9) {
+//         return '254' + cleaned;
+//     }
 
-    return cleaned;
-}
+//     return cleaned;
+// }
 
 function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
@@ -156,7 +156,7 @@ function parseCSV(csvText) {
         const rows = parseCSV(csvText);
         const members = [];
         
-        console.log('[parseMembers] Raw CSV rows:', rows.length);
+        // console.log('[parseMembers] Raw CSV rows:', rows.length);
         
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -185,6 +185,8 @@ function parseCSV(csvText) {
         }
         
         console.log(`[parseMembers] FINAL: Loaded ${members.length} members`);
+        log('[parseMembers] Sample rows:', rows.slice(0, 5));
+
         return members;
     }
 
@@ -213,6 +215,10 @@ function parseCSV(csvText) {
             }
         }
         
+        log('[parsePastors] Total CSV rows:', rows.length);
+log('[parsePastors] Sample rows:', rows.slice(0, 5));
+log('[parsePastors] Final pastors count:', pastors.length);
+
         return pastors;
     }
 
@@ -235,11 +241,17 @@ function parseCSV(csvText) {
     async function fetchAllData() {
     try {
         showLoadingState();
+        
+        log('Starting data fetch...');
+// log('Members URL:', CONFIG.JSON_URLS.members);
+// log('Pastors URL:', CONFIG.JSON_URLS.pastors);
 
         const [membersRes, pastorsRes] = await Promise.all([
             fetch(CONFIG.JSON_URLS.members),
             fetch(CONFIG.JSON_URLS.pastors)
         ]);
+        log('Members fetch status:', membersRes.status);
+log('Pastors fetch status:', pastorsRes.status);
 
         if (!membersRes.ok || !pastorsRes.ok) {
             throw new Error('Failed to fetch data');
@@ -248,20 +260,38 @@ function parseCSV(csvText) {
         const membersText = await membersRes.text();
         const pastorsText = await pastorsRes.text();
 
-
+// log('[fetchAllData] Raw members text length:', membersText.length);
+// log('[fetchAllData] Raw pastors text length:', pastorsText.length);
 
         // Convert the fetched text into proper JSON
         const membersJson = parseGoogleSheetResponse(membersText);
         const pastorsJson = parseGoogleSheetResponse(pastorsText);
 
-    appState.members = membersJson.table.rows
-        .map(row => ({
+//         log('[fetchAllData] Parsed members JSON rows:', membersJson.table.rows.length);
+// log('[fetchAllData] Parsed pastors JSON rows:', pastorsJson.table.rows.length);
+
+// appState.members = membersJson.table.rows
+//     .map(row => ({
+//         name: row.c[0]?.v || '',
+//         group: row.c[2]?.v || '',
+//         year: row.c[3]?.v || '',
+//         phone: cleanPhone(row.c[4]?.v || '')
+//     }))
+//     // keep only real entries
+//     .filter(m => m.name && m.phone);
+
+appState.members = membersJson.table.rows
+    .map(row => {
+        const phone = cleanPhone(row.c[4]?.v || '');
+        // log('[Mapping member] Name:', row.c[0]?.v, 'Phone:', phone);
+        return {
             name: row.c[0]?.v || '',
             group: row.c[2]?.v || '',
             year: row.c[3]?.v || '',
-            phone: cleanPhone(row.c[4]?.v || '')
-        }))
-        .filter(m => m.name && m.phone);
+            phone
+        };
+    })
+    .filter(m => m.name && m.phone);
 
 
 appState.pastors = pastorsJson.table.rows
@@ -296,24 +326,35 @@ appState.pastors = pastorsJson.table.rows
     // SEARCH FUNCTIONS
     // ======================================
 
-    function searchMembers(query) {
-        if (!query) return [];
-        const lower = query.toLowerCase();
+function searchMembers(query) {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase().trim().split(/\s+/);
+// log('[searchMembers] Query:', query, 'Results found:', results.length);
 
-        return appState.members.filter(member =>
-            member.name.toLowerCase().includes(lower)
+    return appState.members.filter(member => {
+        const nameWords = member.name.toLowerCase().split(/\s+/);
+        return lowerQuery.every(qWord =>
+            nameWords.some(nWord => nWord.startsWith(qWord))
         );
-    }
+    });
+    
+}
 
 
-    function searchPastors(query) {
-        if (!query) return [];
-        const lower = query.toLowerCase();
 
-        return appState.pastors.filter(pastor =>
-            pastor.name.toLowerCase().includes(lower)
+function searchPastors(query) {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase().trim().split(/\s+/);
+// log('[searchPastors] Query:', query, 'Results found:', results.length);
+
+    return appState.pastors.filter(pastor => {
+        const nameWords = pastor.name.toLowerCase().split(/\s+/);
+        return lowerQuery.every(qWord =>
+            nameWords.some(nWord => nWord.startsWith(qWord))
         );
-    }
+    });
+}
+
 
 
     function scrollToSearch() {
@@ -326,18 +367,30 @@ appState.pastors = pastorsJson.table.rows
         }
     }
 
-   function generateSuggestions(query) {
+function generateSuggestions(query) {
     if (!query || query.trim().length < 1) {
         hideSuggestions();
         return;
     }
 
-    const lower = query.trim().toLowerCase();
+    const lowerWords = query.trim().toLowerCase().split(/\s+/);
     let suggestions = [];
+
+    const filterFn = name => {
+        const lowerName = name.toLowerCase();
+        const nameWords = lowerName.split(/\s+/);
+        // First, match all query words at the start of a name word
+       const startsWithMatch = lowerWords.every(qWord =>
+            nameWords.some(nWord => nWord.startsWith(qWord) || nWord.includes(qWord))
+        );
+
+        // If that fails, allow full name includes for partial middle/last name
+        return startsWithMatch || lowerWords.every(qWord => lowerName.includes(qWord));
+    };
 
     if (appState.currentRole === 'member') {
         suggestions = appState.members
-            .filter(m => m.name.toLowerCase().includes(lower))
+            .filter(m => filterFn(m.name))
             .slice(0, 8)
             .map(m => ({
                 name: m.name,
@@ -347,7 +400,7 @@ appState.pastors = pastorsJson.table.rows
             }));
     } else {
         suggestions = appState.pastors
-            .filter(p => p.name.toLowerCase().includes(lower))
+            .filter(p => filterFn(p.name))
             .slice(0, 8)
             .map(p => ({
                 name: p.name,
@@ -364,6 +417,7 @@ appState.pastors = pastorsJson.table.rows
 
     displaySuggestions(suggestions);
 }
+
 
 
     function displaySuggestions(suggestions) {
