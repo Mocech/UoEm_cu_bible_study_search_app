@@ -5,9 +5,8 @@
     // Configuration
 const CONFIG = {
     JSON_URLS: {
-        members: "https://docs.google.com/spreadsheets/d/1Pwe4zXfdHBll9XoSO_GwVf8GVBDJfWOWCk_cBnpltzw/gviz/tq?tqx=out:json&sheet=members",
-
-        pastors: "https://docs.google.com/spreadsheets/d/18qX5pLgXHv-4ZlNAw7SWSCtnrva65TwxycQOXuVuv9g/gviz/tq?tqx=out:json&sheet=pastor"
+        members: "https://docs.google.com/spreadsheets/d/18qX5pLgXHv-4ZlNAw7SWSCtnrva65TwxycQOXuVuv9g/gviz/tq?tqx=out:json&sheet=members",
+        pastors: "https://docs.google.com/spreadsheets/d/1gsibd4XwcGFEWfw3Na2VIjlEgwU30N741hUYugFO-JE/gviz/tq?tqx=out:json&sheet=pastors",    
     }
 };
 
@@ -86,7 +85,27 @@ const SUBCOM_LEADERS = [
         return cleaned;
     }
 
-    function parseCSV(csvText) {
+    function  cleanPhone(phone) {
+    if (!phone) return '';
+
+    let cleaned = phone.toString().trim().replace(/\D/g, '');
+
+    if (cleaned.startsWith('254')) {
+        return cleaned;
+    }
+
+    if (cleaned.startsWith('0')) {
+        return '254' + cleaned.slice(1);
+    }
+
+    if (cleaned.length === 9) {
+        return '254' + cleaned;
+    }
+
+    return cleaned;
+}
+
+function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
         const rows = [];
         
@@ -235,22 +254,32 @@ const SUBCOM_LEADERS = [
         const membersJson = parseGoogleSheetResponse(membersText);
         const pastorsJson = parseGoogleSheetResponse(pastorsText);
 
-        appState.members = membersJson.table.rows.map(row => ({
+    appState.members = membersJson.table.rows
+        .map(row => ({
             name: row.c[0]?.v || '',
-            group: row.c[1]?.v || '',
-            year: row.c[2]?.v || '',
-            phone: row.c[3]?.v || ''
-        }));
-
-        appState.pastors = pastorsJson.table.rows.map(row => ({
-            name: row.c[0]?.v || '',
-            year: row.c[1]?.v || '',
             group: row.c[2]?.v || '',
-            phone: row.c[3]?.v || ''
-        }));
+            year: row.c[3]?.v || '',
+            phone: cleanPhone(row.c[4]?.v || '')
+        }))
+        .filter(m => m.name && m.phone);
 
 
-        appState.subcomLeaders = SUBCOM_LEADERS;
+appState.pastors = pastorsJson.table.rows
+    .map(row => ({
+        name: row.c[0]?.v || '',
+        year: row.c[1]?.v || '',
+        group: row.c[2]?.v || '',
+        phone: cleanPhone(row.c[3]?.v || '')
+    }))
+    .filter(p => p.name && p.phone && p.group);
+
+
+
+    appState.subcomLeaders = SUBCOM_LEADERS.map(s => ({
+        ...s,
+        phone: cleanPhone(s.phone)
+    }));
+
 
         appState.allData = true;
 
@@ -426,7 +455,7 @@ const SUBCOM_LEADERS = [
                                     </div>
                                 </div>
                                 <div class="pastor-actions">
-                                    <a href="https://wa.me/${cleanPhone(pastor.phone)}" target="_blank" class="btn-action btn-whatsapp-primary" title="Message on WhatsApp">
+                                    <a href="https://wa.me/${pastor.phone}" target="_blank" class="btn-action btn-whatsapp-primary" title="Message on WhatsApp">
                                         <svg class="wa-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
                                             <path fill="currentColor"
                                                     d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
@@ -434,7 +463,7 @@ const SUBCOM_LEADERS = [
 
                                         <span>WhatsApp</span>
                                     </a>
-                                    <a href="tel:+${cleanPhone(pastor.phone)}" class="btn-action btn-call-secondary" title="Call">
+                                    <a href="tel:+${pastor.phone}" class="btn-action btn-call-secondary" title="Call">
                                         <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3 9C3 5.58172 5.58172 3 9 3H11.3934C11.7733 3 12.1152 3.27543 12.2288 3.70166L13.7257 9.0151C13.8831 9.54543 13.7694 10.0288 13.3243 10.2693L11.2335 11.3434C11.6464 12.6788 12.4577 14.0602 13.7711 15.3736C15.0845 16.687 16.4659 17.4983 17.8013 17.9112L19.1946 16.0337C19.4352 15.5886 19.9497 15.4749 20.3989 15.6323L25.7123 18.1301C26.1385 18.2862 26.4139 18.6483 26.4139 19.0788V21C26.4139 23.1046 25.5185 24 23.4139 24H21C10.5066 24 2 15.4934 2 5V3Z"/></svg>
                                         <span>Call</span>
                                     </a>
@@ -488,14 +517,14 @@ const SUBCOM_LEADERS = [
                                     <div class="subcom-leader">
                                         <p class="subcom-name">${escapeHtml(s.name)}</p>
                                         <div class="subcom-actions">
-                                            <a href="https://wa.me/${cleanPhone(s.phone)}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
+                                            <a href="https://wa.me/${pastor.phone}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
                                                   <svg class="wa-icon wa-icon-small" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
                                                         <path fill="currentColor"
                                                                 d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
                                                     </svg>
 
                                             </a>
-                                            <a href="tel:+${cleanPhone(s.phone)}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
+                                            <a href="tel:+${pastor.phone}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
                                             <svg class="call-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path fill="currentColor"
                                                         d="M6.6 10.8c1.6 3.1 4.1 5.6 7.2 7.2l2.4-2.4c.3-.3.8-.4 1.2-.3 1.3.4 2.7.6 4.1.6.7 0 1.2.5 1.2 1.2V21c0 .7-.5 1.2-1.2 1.2C10.6 22.2 1.8 13.4 1.8 2.6 1.8 1.9 2.3 1.4 3 1.4H7c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.8.6 4.1.1.4 0 .9-.3 1.2L6.6 10.8z"/>
@@ -550,14 +579,14 @@ const SUBCOM_LEADERS = [
                                             <p class="member-row-year">Year ${m.year}</p>
                                         </div>
                                         <div class="member-row-actions">
-                                            <a href="https://wa.me/${cleanPhone(m.phone)}" target="_blank" class="btn-icon btn-icon-whatsapp" title="WhatsApp">
+                                            <a href="https://wa.me/${pastor.phone}" target="_blank" class="btn-icon btn-icon-whatsapp" title="WhatsApp">
                                          <svg class="wa-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
                                             <path fill="currentColor"
                                                     d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
                                         </svg>
 
                                             </a>
-                                            <a href="tel:+${cleanPhone(m.phone)}" class="btn-icon btn-icon-call" title="Call">
+                                            <a href="tel:+${pastor.phone}" class="btn-icon btn-icon-call" title="Call">
                                                     <svg class="call-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                     <path fill="currentColor"
                                                             d="M6.6 10.8c1.6 3.1 4.1 5.6 7.2 7.2l2.4-2.4c.3-.3.8-.4 1.2-.3 1.3.4 2.7.6 4.1.6.7 0 1.2.5 1.2 1.2V21c0 .7-.5 1.2-1.2 1.2C10.6 22.2 1.8 13.4 1.8 2.6 1.8 1.9 2.3 1.4 3 1.4H7c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.8.6 4.1.1.4 0 .9-.3 1.2L6.6 10.8z"/>
@@ -583,14 +612,14 @@ const SUBCOM_LEADERS = [
                                     <div class="subcom-leader">
                                         <p class="subcom-name">${escapeHtml(s.name)}</p>
                                         <div class="subcom-actions">
-                                            <a href="https://wa.me/${cleanPhone(s.phone)}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
+                                            <a href="https://wa.me/${pastor.phone}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
                                                <svg class="wa-icon wa-icon-small" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
                                                     <path fill="currentColor"
                                                             d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
                                                 </svg>
 
                                             </a>
-                                            <a href="tel:+${cleanPhone(s.phone)}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
+                                            <a href="tel:+${pastor.phone}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
                                                   <svg class="call-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                     <path fill="currentColor"
                                                             d="M6.6 10.8c1.6 3.1 4.1 5.6 7.2 7.2l2.4-2.4c.3-.3.8-.4 1.2-.3 1.3.4 2.7.6 4.1.6.7 0 1.2.5 1.2 1.2V21c0 .7-.5 1.2-1.2 1.2C10.6 22.2 1.8 13.4 1.8 2.6 1.8 1.9 2.3 1.4 3 1.4H7c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.8.6 4.1.1.4 0 .9-.3 1.2L6.6 10.8z"/>
