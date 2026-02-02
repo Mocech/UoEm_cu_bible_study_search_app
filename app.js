@@ -296,24 +296,32 @@ appState.pastors = pastorsJson.table.rows
     // SEARCH FUNCTIONS
     // ======================================
 
-    function searchMembers(query) {
-        if (!query) return [];
-        const lower = query.toLowerCase();
+function searchMembers(query) {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase().trim().split(/\s+/);
 
-        return appState.members.filter(member =>
-            member.name.toLowerCase().includes(lower)
+    return appState.members.filter(member => {
+        const nameWords = member.name.toLowerCase().split(/\s+/);
+        return lowerQuery.every(qWord =>
+            nameWords.some(nWord => nWord.startsWith(qWord))
         );
-    }
+    });
+}
 
 
-    function searchPastors(query) {
-        if (!query) return [];
-        const lower = query.toLowerCase();
 
-        return appState.pastors.filter(pastor =>
-            pastor.name.toLowerCase().includes(lower)
+function searchPastors(query) {
+    if (!query) return [];
+    const lowerQuery = query.toLowerCase().trim().split(/\s+/);
+
+    return appState.pastors.filter(pastor => {
+        const nameWords = pastor.name.toLowerCase().split(/\s+/);
+        return lowerQuery.every(qWord =>
+            nameWords.some(nWord => nWord.startsWith(qWord))
         );
-    }
+    });
+}
+
 
 
     function scrollToSearch() {
@@ -326,43 +334,36 @@ appState.pastors = pastorsJson.table.rows
         }
     }
 
-   function generateSuggestions(query) {
-    if (!query || query.trim().length < 1) {
-        hideSuggestions();
-        return;
-    }
+const lowerWords = query.trim().toLowerCase().split(/\s+/);
 
-    const lower = query.trim().toLowerCase();
-    let suggestions = [];
-
-    if (appState.currentRole === 'member') {
-        suggestions = appState.members
-            .filter(m => m.name.toLowerCase().includes(lower))
-            .slice(0, 8)
-            .map(m => ({
-                name: m.name,
-                type: 'member',
-                meta: `Group ${m.group} • Year ${m.year}`,
-                icon: 'member'
-            }));
-    } else {
-        suggestions = appState.pastors
-            .filter(p => p.name.toLowerCase().includes(lower))
-            .slice(0, 8)
-            .map(p => ({
-                name: p.name,
-                type: 'pastor',
-                meta: `Group ${p.group}`,
-                icon: 'pastor'
-            }));
-    }
-
-    if (suggestions.length === 0) {
-        hideSuggestions();
-        return;
-    }
-
-    displaySuggestions(suggestions);
+if (appState.currentRole === 'member') {
+    suggestions = appState.members
+        .filter(m =>
+            lowerWords.every(qWord =>
+                m.name.toLowerCase().split(/\s+/).some(nWord => nWord.startsWith(qWord))
+            )
+        )
+        .slice(0, 8)
+        .map(m => ({
+            name: m.name,
+            type: 'member',
+            meta: `Group ${m.group} • Year ${m.year}`,
+            icon: 'member'
+        }));
+} else {
+    suggestions = appState.pastors
+        .filter(p =>
+            lowerWords.every(qWord =>
+                p.name.toLowerCase().split(/\s+/).some(nWord => nWord.startsWith(qWord))
+            )
+        )
+        .slice(0, 8)
+        .map(p => ({
+            name: p.name,
+            type: 'pastor',
+            meta: `Group ${p.group}`,
+            icon: 'pastor'
+        }));
 }
 
 
