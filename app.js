@@ -6,7 +6,8 @@
 const CONFIG = {
     JSON_URLS: {
         members: "https://docs.google.com/spreadsheets/d/1Pwe4zXfdHBll9XoSO_GwVf8GVBDJfWOWCk_cBnpltzw/gviz/tq?tqx=out:json&sheet=members",
-        pastors: "https://docs.google.com/spreadsheets/d/1gsibd4XwcGFEWfw3Na2VIjlEgwU30N741hUYugFO-JE/gviz/tq?tqx=out:json&sheet=pastors"
+
+        pastors: "https://docs.google.com/spreadsheets/d/18qX5pLgXHv-4ZlNAw7SWSCtnrva65TwxycQOXuVuv9g/gviz/tq?tqx=out:json&sheet=pastor"
     }
 };
 
