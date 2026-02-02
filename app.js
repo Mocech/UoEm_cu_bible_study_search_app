@@ -3,12 +3,13 @@
     ====================================== */
 
     // Configuration
-    const CONFIG = {
-        CSV_URLS: {
-            members: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgKskD9LUbX1fnif3a00bCKZ4WOWldwZY1UPptlS4c9P8e8LUr2rGOjS84u7dcaNtqOhUSMqGMNZId/pub?gid=133507049&single=true&output=csv",
-            pastors: "https://docs.google.com/spreadsheets/d/e/2PACX-1vShnULaosXIVvlmXBuT87htfDDw8frI7nPotLQgeEEVD6dGMnBXfvBTc8ZklGiHwynn1m4efSLm1eG6/pub?gid=925924791&single=true&output=csv",
-        }
-    };
+const CONFIG = {
+    JSON_URLS: {
+        members: "https://docs.google.com/spreadsheets/d/1Pwe4zXfdHBll9XoSO_GwVf8GVBDJfWOWCk_cBnpltzw/gviz/tq?tqx=out:json&sheet=members",
+        pastors: "https://docs.google.com/spreadsheets/d/1gsibd4XwcGFEWfw3Na2VIjlEgwU30N741hUYugFO-JE/gviz/tq?tqx=out:json&sheet=pastors"
+    }
+};
+
 
 const SUBCOM_LEADERS = [
     { name: "DANIEL WALIAULA", year: "3", phone: "799134615", position: "CHAIRPERSON", group: "1" },
@@ -196,50 +197,70 @@ const SUBCOM_LEADERS = [
     }
 
 
+ function parseGoogleSheetResponse(text) {
+    // Remove Google’s non-JSON prefix
+    const jsonStr = text
+        .replace(/^\/\*.*\*\//, '')       // remove /*O_o*/
+        .replace(/^[^\(]*\(/, '')         // remove anything before first (
+        .replace(/\);?$/, '');            // remove trailing );
+
+    return JSON.parse(jsonStr);
+}
+
+
     // ======================================
     // FETCH DATA
     // ======================================
 
     async function fetchAllData() {
-        try {
-            showLoadingState();
+    try {
+        showLoadingState();
 
-            const proxy = 'https://api.allorigins.win/raw?url=';
-            const [membersRes, pastorsRes] = await Promise.all([
-                fetch(proxy + encodeURIComponent(CONFIG.CSV_URLS.members)),
-                fetch(proxy + encodeURIComponent(CONFIG.CSV_URLS.pastors))
-            ]);
+        const [membersRes, pastorsRes] = await Promise.all([
+            fetch(CONFIG.JSON_URLS.members),
+            fetch(CONFIG.JSON_URLS.pastors)
+        ]);
 
-            // const [membersRes, pastorsRes, subcomRes] = await Promise.all([
-            //     fetch(CONFIG.CSV_URLS.members),
-            //     fetch(CONFIG.CSV_URLS.pastors),
-            //     fetch(CONFIG.CSV_URLS.subcom)
-            // ]);
-            
-           if (!membersRes.ok || !pastorsRes.ok) {
-                throw new Error('Failed to fetch data');
-            }
-
-            
-            const membersCsv = await membersRes.text();
-            const pastorsCsv = await pastorsRes.text();
-            
-            
-            appState.members = parseMembers(membersCsv);
-            appState.pastors = parsePastors(pastorsCsv);
-            appState.subcomLeaders = SUBCOM_LEADERS;
-
-            
-            appState.allData = true;
-            
-            hideLoadingState();
-            renderResults();
-            
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            showErrorState('Failed to load data. Please check your internet connection and try again.');
+        if (!membersRes.ok || !pastorsRes.ok) {
+            throw new Error('Failed to fetch data');
         }
+
+        const membersText = await membersRes.text();
+        const pastorsText = await pastorsRes.text();
+
+
+
+        // Convert the fetched text into proper JSON
+        const membersJson = parseGoogleSheetResponse(membersText);
+        const pastorsJson = parseGoogleSheetResponse(pastorsText);
+
+        appState.members = membersJson.table.rows.map(row => ({
+            name: row.c[0]?.v || '',
+            group: row.c[1]?.v || '',
+            year: row.c[2]?.v || '',
+            phone: row.c[3]?.v || ''
+        }));
+
+        appState.pastors = pastorsJson.table.rows.map(row => ({
+            name: row.c[0]?.v || '',
+            year: row.c[1]?.v || '',
+            group: row.c[2]?.v || '',
+            phone: row.c[3]?.v || ''
+        }));
+
+
+        appState.subcomLeaders = SUBCOM_LEADERS;
+
+        appState.allData = true;
+
+        hideLoadingState();
+        renderResults();
+
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        showErrorState('Failed to load data. Please check your internet connection and try again.');
     }
+}
 
     // ======================================
     // SEARCH FUNCTIONS
