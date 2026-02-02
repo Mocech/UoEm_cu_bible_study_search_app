@@ -204,7 +204,7 @@ const SUBCOM_LEADERS = [
         try {
             showLoadingState();
 
-            const proxy = 'https://corsproxy.io/?';
+            const proxy = 'https://api.allorigins.win/raw?url=';
             const [membersRes, pastorsRes] = await Promise.all([
                 fetch(proxy + encodeURIComponent(CONFIG.CSV_URLS.members)),
                 fetch(proxy + encodeURIComponent(CONFIG.CSV_URLS.pastors))
