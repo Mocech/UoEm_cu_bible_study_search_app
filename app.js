@@ -1,4 +1,4 @@
-    /* ======================================
+/* ======================================
     BIBLE STUDY GROUP FINDER APP
     ====================================== */
 
@@ -47,7 +47,7 @@ const SUBCOM_LEADERS = [
         showPhones: {}
     };
 
-    // DOM Elements
+// DOM Elements
     const elements = {
         roleButtons: document.querySelectorAll('.role-btn'),
         searchInput: document.getElementById('searchInput'),
@@ -61,7 +61,9 @@ const SUBCOM_LEADERS = [
         hamburger: document.getElementById('hamburger'),
         suggestionsDropdown: document.getElementById('suggestionsDropdown'),
         suggestionsList: document.getElementById('suggestionsList'),
-        searchContainer: document.querySelector('.search-container')
+        searchContainer: document.querySelector('.search-container'),
+        memberInfoSection: document.getElementById('memberInfoSection'),
+        registerBtn: document.getElementById('registerBtn')
     };
 
 
@@ -821,6 +823,14 @@ function toggleSubcomLeadersFallback(btn) {
         button.classList.toggle('open', !isOpen);
     }
 
+    // Register button
+    if (elements.registerBtn) {
+        elements.registerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.open(MEMBER_REGISTRATION_FORM_URL, '_blank');
+        });
+    }
+
     // Role selector
     elements.roleButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -830,6 +840,12 @@ function toggleSubcomLeadersFallback(btn) {
             elements.searchInput.value = '';
             appState.searchQuery = '';
             elements.clearBtn.style.display = 'none';
+            
+            // Show info section only for members
+            if (elements.memberInfoSection) {
+                elements.memberInfoSection.style.display = btn.dataset.role === 'member' ? 'block' : 'none';
+            }
+            
             renderResults();
             
             // Auto-scroll to search bar
@@ -862,6 +878,11 @@ function toggleSubcomLeadersFallback(btn) {
     // ======================================
     // INITIALIZATION
     // ======================================
+
+    // Show info section on page load for members tab (default active)
+    if (elements.memberInfoSection) {
+        elements.memberInfoSection.style.display = 'block';
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         fetchAllData();
