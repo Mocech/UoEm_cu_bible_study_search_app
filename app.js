@@ -10,6 +10,9 @@ const CONFIG = {
     }
 };
 
+const MEMBER_REGISTRATION_FORM_URL =
+    "https://docs.google.com/forms/d/e/1FAIpQLSeZGjpSA4aEDHHvuEIabIeoDtdMqiQsSeFupifoSUlCU4h0-A/viewform?usp=publish-editor";
+
 
 const SUBCOM_LEADERS = [
     { name: "DANIEL WALIAULA", year: "3", phone: "799134615", position: "CHAIRPERSON", group: "1" },
@@ -60,6 +63,36 @@ const SUBCOM_LEADERS = [
         suggestionsList: document.getElementById('suggestionsList'),
         searchContainer: document.querySelector('.search-container')
     };
+
+
+// Enter key triggers search
+elements.searchInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const query = elements.searchInput.value.trim();
+        if (!query) {
+            showEmptyState();
+            return;
+        }
+        appState.searchQuery = query;
+        hideSuggestions();
+        renderResults();
+    }
+});
+
+// Search icon click triggers search
+const searchBtn = document.getElementById('searchBtn');
+searchBtn.addEventListener('click', function() {
+    const query = elements.searchInput.value.trim();
+    if (!query) {
+        showEmptyState();
+        return;
+    }
+    appState.searchQuery = query;
+    hideSuggestions();
+    renderResults();
+});
+
 
     // ======================================
     // UTILITY FUNCTIONS
@@ -151,77 +184,7 @@ function parseCSV(csvText) {
     // ======================================
     // DATA PARSING FUNCTIONS
     // ======================================
-
-    function parseMembers(csvText) {
-        const rows = parseCSV(csvText);
-        const members = [];
-        
-        // console.log('[parseMembers] Raw CSV rows:', rows.length);
-        
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            
-            // Skip header and empty rows
-            if (row.length < 2 || !row[0]) continue;
-            
-        // Correct order: NAME, GROUP, YEAR, PHONE
-            const name  = cleanName(row[0].trim());
-            const group = row[1] ? row[1].trim() : '';
-            const year  = row[2] ? row[2].trim() : '';
-            const phone = row[3] ? row[3].trim() : '';
-
-            
-            // Require name and phone at minimum
-            if (!name || !phone) {
-                continue;
-            }
-            
-            members.push({
-                name,
-                group: group || 'N/A',
-                year: year || 'N/A',
-                phone
-            });
-        }
-        
-        console.log(`[parseMembers] FINAL: Loaded ${members.length} members`);
-        log('[parseMembers] Sample rows:', rows.slice(0, 5));
-
-        return members;
-    }
-
-
-    function parsePastors(csvText) {
-        const rows = parseCSV(csvText);
-        const pastors = [];
-        
-        // Skip header row
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row.length < 4 || !row[0]) continue;
-            
-            const name = row[0].trim();
-            const year = row[1] ? row[1].trim() : '';
-            const group = row[2] ? row[2].trim() : '';
-            const phone = row[3] ? row[3].trim() : '';
-            
-            if (name && phone && group) {
-                pastors.push({
-                    name,
-                    year,
-                    group,
-                    phone
-                });
-            }
-        }
-        
-        log('[parsePastors] Total CSV rows:', rows.length);
-log('[parsePastors] Sample rows:', rows.slice(0, 5));
-log('[parsePastors] Final pastors count:', pastors.length);
-
-        return pastors;
-    }
-
+   
 
  function parseGoogleSheetResponse(text) {
     // Remove Google’s non-JSON prefix
@@ -266,19 +229,6 @@ log('Pastors fetch status:', pastorsRes.status);
         // Convert the fetched text into proper JSON
         const membersJson = parseGoogleSheetResponse(membersText);
         const pastorsJson = parseGoogleSheetResponse(pastorsText);
-
-//         log('[fetchAllData] Parsed members JSON rows:', membersJson.table.rows.length);
-// log('[fetchAllData] Parsed pastors JSON rows:', pastorsJson.table.rows.length);
-
-// appState.members = membersJson.table.rows
-//     .map(row => ({
-//         name: row.c[0]?.v || '',
-//         group: row.c[2]?.v || '',
-//         year: row.c[3]?.v || '',
-//         phone: cleanPhone(row.c[4]?.v || '')
-//     }))
-//     // keep only real entries
-//     .filter(m => m.name && m.phone);
 
 appState.members = membersJson.table.rows
     .map(row => {
@@ -472,11 +422,11 @@ function generateSuggestions(query) {
     // ======================================
 
     function renderMemberSearchResults(members) {
-        if (members.length === 0) {
-            elements.resultsContainer.innerHTML = '';
-            showEmptyState();
-            return;
-        }
+            if (members.length === 0) {
+        renderNoMatchCard('member');
+        return;
+    }
+
         
         hideEmptyState();
         let html = '<div class="results-container">';
@@ -567,29 +517,27 @@ function generateSuggestions(query) {
                         </button>
                              
                             <div class="subcom-leaders-list" style="display: none;">
-                                 ${subcomLeaders.map(s => `
-                                    <div class="subcom-leader">
-                                        <p class="subcom-name">${escapeHtml(s.name)}</p>
-                                        <div class="subcom-actions">
-                                            <a href="https://wa.me/${pastor.phone}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
-                                                  <svg class="wa-icon wa-icon-small" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                                                        <path fill="currentColor"
-                                                                d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
-                                                    </svg>
+    ${subcomLeaders.map(s => `
+        <div class="subcom-leader">
+            <p class="subcom-name">${escapeHtml(s.name)}</p>
+            <div class="subcom-actions">
+                <a href="https://wa.me/${cleanPhone(s.phone)}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
+                    <svg class="wa-icon wa-icon-small" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="currentColor"
+                            d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
+                    </svg>
+                </a>
+                <a href="tel:+${cleanPhone(s.phone)}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
+                    <svg class="call-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="currentColor"
+                            d="M6.6 10.8c1.6 3.1 4.1 5.6 7.2 7.2l2.4-2.4c.3-.3.8-.4 1.2-.3 1.3.4 2.7.6 4.1.6.7 0 1.2.5 1.2 1.2V21c0 .7-.5 1.2-1.2 1.2C10.6 22.2 1.8 13.4 1.8 2.6 1.8 1.9 2.3 1.4 3 1.4H7c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.8.6 4.1.1.4 0 .9-.3 1.2L6.6 10.8z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    `).join('')}
+</div>
 
-                                            </a>
-                                            <a href="tel:+${pastor.phone}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
-                                            <svg class="call-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path fill="currentColor"
-                                                        d="M6.6 10.8c1.6 3.1 4.1 5.6 7.2 7.2l2.4-2.4c.3-.3.8-.4 1.2-.3 1.3.4 2.7.6 4.1.6.7 0 1.2.5 1.2 1.2V21c0 .7-.5 1.2-1.2 1.2C10.6 22.2 1.8 13.4 1.8 2.6 1.8 1.9 2.3 1.4 3 1.4H7c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.8.6 4.1.1.4 0 .9-.3 1.2L6.6 10.8z"/>
-                                            </svg>
-    
-                                            </a>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        
                     </div>
                 </div>
             `;
@@ -600,11 +548,11 @@ function generateSuggestions(query) {
     }
 
     function renderPastorSearchResults(pastors) {
-        if (pastors.length === 0) {
-            elements.resultsContainer.innerHTML = '';
-            showEmptyState();
+            if (pastors.length === 0) {
+            renderNoMatchCard('pastor');
             return;
         }
+
         
         hideEmptyState();
         let html = '<div class="results-container">';
@@ -692,6 +640,109 @@ function generateSuggestions(query) {
         html += '</div>';
         elements.resultsContainer.innerHTML = html;
     }
+
+function toggleSubcomLeadersFallback(btn) {
+    // Find the parent card
+    const card = btn.closest('.result-card');
+    if (!card) return;
+
+    // Find the subcom leaders list inside this card
+    const container = card.querySelector('.subcom-leaders-list');
+    if (!container) return;
+
+    const isVisible = container.style.display === 'block';
+    container.style.display = isVisible ? 'none' : 'block';
+
+    // Optional: rotate icon if button has SVG
+    const svgIcon = btn.querySelector('svg');
+    if (svgIcon) {
+        svgIcon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+        svgIcon.style.transition = 'transform 0.3s ease';
+    }
+}
+
+
+
+
+
+    function renderNoMatchCard(role) {
+    const subcomLeaders = appState.subcomLeaders;
+
+    const isMember = role === 'member';
+
+    const html = `
+        <div class="results-container">
+            <div class="result-card no-match-card">
+
+                <h3 class="section-title">Name Not Found</h3>
+
+                <p class="no-match-text">
+                    ${
+                        isMember
+                            ? "We couldn’t find your name in our Bible Study records."
+                            : "This pastor is not yet assigned in the system."
+                    }
+                </p>
+
+                <!-- Actions -->
+                <div class="no-match-actions">
+                    ${
+                        isMember
+                            ? `
+                                <a
+                                    href="${MEMBER_REGISTRATION_FORM_URL}"
+                                    target="_blank"
+                                    class="btn-action btn-call-secondary"
+                                >
+                                    Fill Registration Form
+                                </a>
+                              `
+                            : ""
+                    }
+                    
+                    <button
+                        class="btn-action btn-call-secondary"
+                        onclick="toggleSubcomLeadersFallback(this)"
+                    >
+                        Contact Subcom Leaders
+                    </button>
+                </div>
+
+                <!-- Subcom Leaders List -->
+<div class="subcom-leaders-list" style="display: none;">
+    ${subcomLeaders.map(s => `
+        <div class="subcom-leader">
+            <p class="subcom-name">${escapeHtml(s.name)}</p>
+            <p class="subcom-role">${escapeHtml(s.position)}</p>
+
+            <div class="subcom-actions">
+                <!-- WhatsApp Button -->
+                <a href="https://wa.me/${s.phone}" target="_blank" class="btn-icon btn-icon-small btn-icon-whatsapp" title="WhatsApp">
+                    <svg class="wa-icon wa-icon-small" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="currentColor"
+                            d="M16 3C9.37 3 4 8.37 4 15c0 2.38.7 4.6 1.9 6.48L4 29l7.72-1.86A12.9 12.9 0 0 0 16 27c6.63 0 12-5.37 12-12S22.63 3 16 3zm0 22c-2.04 0-3.95-.6-5.55-1.62l-.4-.24-4.6 1.1 1.12-4.48-.26-.43A9.96 9.96 0 0 1 6 15c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10zm5.02-7.56c-.28-.14-1.64-.8-1.9-.9-.25-.1-.43-.14-.6.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.06-.28-.14-1.18-.44-2.24-1.4-.83-.74-1.4-1.66-1.56-1.94-.16-.28-.02-.42.12-.56.12-.12.28-.32.42-.48.14-.16.18-.28.28-.46.1-.18.06-.34-.02-.48-.08-.14-.6-1.44-.82-1.98-.22-.52-.44-.44-.6-.44h-.52c-.18 0-.48.06-.72.34-.24.28-.94.92-.94 2.24 0 1.32.96 2.6 1.1 2.78.14.18 1.88 2.88 4.56 4.04.64.28 1.14.44 1.52.56.64.2 1.22.18 1.68.1.52-.08 1.64-.66 1.88-1.3.24-.64.24-1.18.18-1.3-.06-.12-.24-.2-.52-.34z"/>
+                    </svg>
+                </a>
+
+                <!-- Call Button -->
+                <a href="tel:+${s.phone}" class="btn-icon btn-icon-small btn-icon-call" title="Call">
+                    <svg class="call-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="currentColor"
+                            d="M6.6 10.8c1.6 3.1 4.1 5.6 7.2 7.2l2.4-2.4c.3-.3.8-.4 1.2-.3 1.3.4 2.7.6 4.1.6.7 0 1.2.5 1.2 1.2V21c0 .7-.5 1.2-1.2 1.2C10.6 22.2 1.8 13.4 1.8 2.6 1.8 1.9 2.3 1.4 3 1.4H7c.7 0 1.2.5 1.2 1.2 0 1.4.2 2.8.6 4.1.1.4 0 .9-.3 1.2L6.6 10.8z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    `).join('')}
+</div>
+
+            </div>
+        </div>
+    `;
+
+    elements.resultsContainer.innerHTML = html;
+    hideEmptyState();
+}
 
     function renderResults() {
         const query = appState.searchQuery;

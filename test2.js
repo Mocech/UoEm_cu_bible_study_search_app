@@ -85,25 +85,25 @@ const SUBCOM_LEADERS = [
         return cleaned;
     }
 
-    function  cleanPhone(phone) {
-    if (!phone) return '';
+//     function  cleanPhone(phone) {
+//     if (!phone) return '';
 
-    let cleaned = phone.toString().trim().replace(/\D/g, '');
+//     let cleaned = phone.toString().trim().replace(/\D/g, '');
 
-    if (cleaned.startsWith('254')) {
-        return cleaned;
-    }
+//     if (cleaned.startsWith('254')) {
+//         return cleaned;
+//     }
 
-    if (cleaned.startsWith('0')) {
-        return '254' + cleaned.slice(1);
-    }
+//     if (cleaned.startsWith('0')) {
+//         return '254' + cleaned.slice(1);
+//     }
 
-    if (cleaned.length === 9) {
-        return '254' + cleaned;
-    }
+//     if (cleaned.length === 9) {
+//         return '254' + cleaned;
+//     }
 
-    return cleaned;
-}
+//     return cleaned;
+// }
 
 function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
@@ -156,7 +156,7 @@ function parseCSV(csvText) {
         const rows = parseCSV(csvText);
         const members = [];
         
-        console.log('[parseMembers] Raw CSV rows:', rows.length);
+        // console.log('[parseMembers] Raw CSV rows:', rows.length);
         
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -243,8 +243,8 @@ log('[parsePastors] Final pastors count:', pastors.length);
         showLoadingState();
         
         log('Starting data fetch...');
-log('Members URL:', CONFIG.JSON_URLS.members);
-log('Pastors URL:', CONFIG.JSON_URLS.pastors);
+// log('Members URL:', CONFIG.JSON_URLS.members);
+// log('Pastors URL:', CONFIG.JSON_URLS.pastors);
 
         const [membersRes, pastorsRes] = await Promise.all([
             fetch(CONFIG.JSON_URLS.members),
@@ -260,15 +260,15 @@ log('Pastors fetch status:', pastorsRes.status);
         const membersText = await membersRes.text();
         const pastorsText = await pastorsRes.text();
 
-log('[fetchAllData] Raw members text length:', membersText.length);
-log('[fetchAllData] Raw pastors text length:', pastorsText.length);
+// log('[fetchAllData] Raw members text length:', membersText.length);
+// log('[fetchAllData] Raw pastors text length:', pastorsText.length);
 
         // Convert the fetched text into proper JSON
         const membersJson = parseGoogleSheetResponse(membersText);
         const pastorsJson = parseGoogleSheetResponse(pastorsText);
 
-        log('[fetchAllData] Parsed members JSON rows:', membersJson.table.rows.length);
-log('[fetchAllData] Parsed pastors JSON rows:', pastorsJson.table.rows.length);
+//         log('[fetchAllData] Parsed members JSON rows:', membersJson.table.rows.length);
+// log('[fetchAllData] Parsed pastors JSON rows:', pastorsJson.table.rows.length);
 
 // appState.members = membersJson.table.rows
 //     .map(row => ({
@@ -283,7 +283,7 @@ log('[fetchAllData] Parsed pastors JSON rows:', pastorsJson.table.rows.length);
 appState.members = membersJson.table.rows
     .map(row => {
         const phone = cleanPhone(row.c[4]?.v || '');
-        log('[Mapping member] Name:', row.c[0]?.v, 'Phone:', phone);
+        // log('[Mapping member] Name:', row.c[0]?.v, 'Phone:', phone);
         return {
             name: row.c[0]?.v || '',
             group: row.c[2]?.v || '',
@@ -329,7 +329,7 @@ appState.pastors = pastorsJson.table.rows
 function searchMembers(query) {
     if (!query) return [];
     const lowerQuery = query.toLowerCase().trim().split(/\s+/);
-log('[searchMembers] Query:', query, 'Results found:', results.length);
+// log('[searchMembers] Query:', query, 'Results found:', results.length);
 
     return appState.members.filter(member => {
         const nameWords = member.name.toLowerCase().split(/\s+/);
@@ -345,7 +345,7 @@ log('[searchMembers] Query:', query, 'Results found:', results.length);
 function searchPastors(query) {
     if (!query) return [];
     const lowerQuery = query.toLowerCase().trim().split(/\s+/);
-log('[searchPastors] Query:', query, 'Results found:', results.length);
+// log('[searchPastors] Query:', query, 'Results found:', results.length);
 
     return appState.pastors.filter(pastor => {
         const nameWords = pastor.name.toLowerCase().split(/\s+/);

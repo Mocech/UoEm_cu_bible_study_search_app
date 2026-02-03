@@ -180,6 +180,44 @@
     width: 18px;
     height: 18px;
 }
+/* ======================================
+   SEARCH BUTTON (EXPLICIT SEARCH)
+   ====================================== */
+
+.search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    background: none;
+    border: none;
+    border-radius: 50%;
+
+    color: var(--color-text-light);
+    cursor: pointer;
+    flex-shrink: 0;
+
+    transition: all var(--transition-base);
+}
+
+.search-btn:hover {
+    color: var(--color-primary);
+    background-color: rgba(63, 17, 78, 0.06);
+}
+
+.search-btn:active {
+    transform: scale(0.95);
+}
+
+.search-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+}
 
 /* ======================================
    SUGGESTIONS DROPDOWN
@@ -1039,6 +1077,25 @@
     display: flex;
     gap: 0.5rem;
 }
+
+/* Make subcom leader stack properly on small screens */
+@media (max-width: 480px) {
+    .subcom-leader {
+        flex-direction: column;
+        align-items: flex-start; /* stack items to the left */
+        gap: 0.5rem; /* spacing between name/role and buttons */
+    }
+
+    .subcom-actions {
+        margin-top: 0.5rem; /* extra spacing under name/role */
+    }
+
+    .subcom-name,
+    .subcom-role {
+        font-size: 0.95rem; /* slightly smaller for mobile */
+    }
+}
+
 
 /* ======================================
    MEMBERS LIST
